@@ -4,18 +4,18 @@ A new Flutter project.
 
 ## Getting Started
 
-MyFschool là ứng dụng sổ liên lạc điện tử được xây dựng bằng Flutter, hướng đến việc kết nối nhà trường, giáo viên, học sinh và phụ huynh trên một nền tảng thống nhất.
+MyFschool is a Flutter-based digital school communication platform designed to connect schools, teachers, students, and parents in a unified system.
 
-Dự án tập trung vào các nghiệp vụ chính của môi trường phổ thông như quản lý hồ sơ học sinh, lớp học, điểm số, thời khóa biểu, tình trạng nghỉ học, học phí, đơn từ, thông báo và câu lạc bộ. Hệ thống được định hướng phát triển theo mô hình client-server, trong đó Flutter đóng vai trò giao diện người dùng, backend REST API xử lý nghiệp vụ và database lưu trữ dữ liệu tập trung.
+The project focuses on core school management features such as student profiles, classes, grades, timetables, absence tracking, tuition, leave requests, notifications, and clubs. The system is designed with a client-server architecture, where Flutter provides the user interface, a REST API backend handles business logic, and a centralized database stores school data.
 
-Các vai trò chính trong hệ thống gồm:
+The main user roles in the system include:
 
-- **Parent:** theo dõi thông tin học tập, học phí, thời khóa biểu và hoạt động của con thông qua cơ chế Current Student.
-- **Student:** đăng nhập để xem dữ liệu học tập, thời khóa biểu, lịch thi, bài tập và thông báo của chính mình.
-- **Teacher:** nhập điểm, xử lý thông tin nghỉ học, duyệt đơn xin nghỉ, gửi thông báo và quản lý câu lạc bộ nếu được phân công.
-- **Admin:** quản lý tài khoản, học sinh, lớp học, phân công giáo viên, học phí, câu lạc bộ và audit log.
+- **Parent:** monitors their child's academic information, tuition, timetable, absences, and activities through the Current Student mechanism.
+- **Student:** logs in to view their own academic records, timetable, exam schedule, assignments, and notifications.
+- **Teacher:** enters grades, handles absence-related information, reviews leave requests, sends notifications, and manages clubs when assigned.
+- **Admin:** manages accounts, students, classes, teacher assignments, tuition, clubs, and audit logs.
 
-Tài liệu phân tích nghiệp vụ và định hướng hệ thống nằm trong thư mục [docs](docs/), bao gồm tổng quan hệ thống, business flow và phân quyền theo vai trò.
+Business analysis and system design documents are available in the [docs](docs/) directory, including the system overview, business flow, and role-based permission documentation.
 
 This project is a starting point for a Flutter application.
 
