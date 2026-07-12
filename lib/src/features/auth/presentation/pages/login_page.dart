@@ -57,7 +57,14 @@ class _LoginPageState extends State<LoginPage> {
               controller: widget.controller,
               roles: account.roles,
             )
-          : RoleLandingPage(activeRole: account.activeRole ?? account.roles.first);
+          : RoleLandingPage(
+              activeRole: account.activeRole ?? account.roles.first,
+              account: account,
+              onLogout: widget.controller.logout,
+              loginPageBuilder: () => LoginPage(
+                controller: widget.controller,
+              ),
+            );
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(builder: (_) => destination),

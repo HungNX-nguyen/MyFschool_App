@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
 
 class StudentHomePage extends StatelessWidget {
-  const StudentHomePage({super.key});
+  const StudentHomePage({
+    required this.onProfileTap,
+    super.key,
+  });
+
+  final VoidCallback onProfileTap;
 
   static const _features = <HomeFeatureItem>[
     HomeFeatureItem(
@@ -42,25 +47,27 @@ class StudentHomePage extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  HomeBrandHeader(),
-                  SizedBox(height: 32),
-                  HomeSectionHeader(title: 'Các chức năng'),
-                  SizedBox(height: 14),
-                  HomeFeatureGrid(features: _features),
-                  SizedBox(height: 28),
-                  HomeSectionHeader(title: 'Tin tức nhà trường'),
-                  SizedBox(height: 14),
-                  HomeNewsGallery(),
+                  HomeBrandHeader(onAvatarTap: onProfileTap),
+                  const SizedBox(height: 32),
+                  const HomeSectionHeader(title: 'Các chức năng'),
+                  const SizedBox(height: 14),
+                  const HomeFeatureGrid(features: _features),
+                  const SizedBox(height: 28),
+                  const HomeSectionHeader(title: 'Tin tức nhà trường'),
+                  const SizedBox(height: 14),
+                  const HomeNewsGallery(),
                 ],
               ),
             ),
           ),
         ),
       ),
-      bottomNavigationBar: const HomeBottomNavigation(),
+      bottomNavigationBar: HomeBottomNavigation(
+        onAccountTap: onProfileTap,
+      ),
     );
   }
 }

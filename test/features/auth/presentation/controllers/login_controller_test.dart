@@ -104,6 +104,21 @@ void main() {
     expect(controller.status, LoginStatus.success);
     expect(controller.session, same(selectedSession));
   });
+
+  test('clears the session after logout', () async {
+    final repository = _FakeAuthRepository(result: session);
+    final controller = LoginController(repository);
+
+    await controller.login(
+      identifier: 'parent01',
+      password: 'password123',
+    );
+    await controller.logout();
+
+    expect(repository.logoutCalled, isTrue);
+    expect(controller.status, LoginStatus.idle);
+    expect(controller.session, isNull);
+  });
 }
 
 class _FakeAuthRepository implements AuthRepository {
@@ -122,10 +137,11 @@ class _FakeAuthRepository implements AuthRepository {
   int callCount = 0;
   String? lastIdentifier;
   String? lastSelectedRole;
+  bool logoutCalled = false;
 
   @override
-  Future<void> logout() {
-    throw UnimplementedError();
+  Future<void> logout() async {
+    logoutCalled = true;
   }
 
   @override

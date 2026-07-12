@@ -4,7 +4,12 @@ import '../../../../shared/theme/app_theme.dart';
 import '../widgets/home_shared_widgets.dart';
 
 class TeacherHomePage extends StatelessWidget {
-  const TeacherHomePage({super.key});
+  const TeacherHomePage({
+    required this.onProfileTap,
+    super.key,
+  });
+
+  final VoidCallback onProfileTap;
 
   static const _features = <_TeacherFeature>[
     _TeacherFeature('Lớp CN', 'lib/asset/icon/class.png'),
@@ -27,7 +32,7 @@ class TeacherHomePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const HomeBrandHeader(),
+                  HomeBrandHeader(onAvatarTap: onProfileTap),
                   const SizedBox(height: 22),
                   const _EmptyHomeroomClass(),
                   const SizedBox(height: 32),
@@ -44,7 +49,9 @@ class TeacherHomePage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const HomeBottomNavigation(),
+      bottomNavigationBar: HomeBottomNavigation(
+        onAccountTap: onProfileTap,
+      ),
     );
   }
 }

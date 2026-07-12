@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
 
 class ParentHomePage extends StatelessWidget {
-  const ParentHomePage({super.key});
+  const ParentHomePage({
+    required this.onProfileTap,
+    super.key,
+  });
+
+  final VoidCallback onProfileTap;
 
   static const _features = <HomeFeatureItem>[
     HomeFeatureItem(
@@ -50,7 +55,7 @@ class ParentHomePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const HomeBrandHeader(),
+                  HomeBrandHeader(onAvatarTap: onProfileTap),
                   const SizedBox(height: 22),
                   const _EmptyStudentSelector(),
                   const SizedBox(height: 32),
@@ -67,7 +72,9 @@ class ParentHomePage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const HomeBottomNavigation(),
+      bottomNavigationBar: HomeBottomNavigation(
+        onAccountTap: onProfileTap,
+      ),
     );
   }
 }

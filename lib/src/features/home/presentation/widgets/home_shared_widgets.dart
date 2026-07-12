@@ -3,23 +3,36 @@ import 'package:flutter/material.dart';
 import '../../../../shared/theme/app_theme.dart';
 
 class HomeBrandHeader extends StatelessWidget {
-  const HomeBrandHeader({super.key});
+  const HomeBrandHeader({
+    this.onAvatarTap,
+    super.key,
+  });
+
+  final VoidCallback? onAvatarTap;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF0F0F0),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.person,
-            color: Color(0xFF6D6D6D),
-            size: 36,
+        Semantics(
+          button: true,
+          label: 'Mở tài khoản',
+          child: InkWell(
+            onTap: onAvatarTap,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF0F0F0),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Color(0xFF6D6D6D),
+                size: 36,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -135,7 +148,12 @@ class HomeNewsGallery extends StatelessWidget {
 }
 
 class HomeBottomNavigation extends StatelessWidget {
-  const HomeBottomNavigation({super.key});
+  const HomeBottomNavigation({
+    this.onAccountTap,
+    super.key,
+  });
+
+  final VoidCallback? onAccountTap;
 
   static const _items = <_NavigationItem>[
     _NavigationItem('Trang chủ', Icons.home),
@@ -162,6 +180,7 @@ class HomeBottomNavigation extends StatelessWidget {
                 child: _NavigationButton(
                   item: _items[index],
                   isSelected: index == 0,
+                  onTap: index == _items.length - 1 ? onAccountTap : null,
                 ),
               ),
           ],
@@ -261,10 +280,12 @@ class _NavigationButton extends StatelessWidget {
   const _NavigationButton({
     required this.item,
     required this.isSelected,
+    this.onTap,
   });
 
   final _NavigationItem item;
   final bool isSelected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +294,7 @@ class _NavigationButton extends StatelessWidget {
         : const Color(0xFF555555);
 
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

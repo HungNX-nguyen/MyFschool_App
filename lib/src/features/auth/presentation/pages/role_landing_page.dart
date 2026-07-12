@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../../shared/theme/app_theme.dart';
+import '../../domain/entities/account.dart';
 import '../../../home/presentation/pages/parent_home_page.dart';
 import '../../../home/presentation/pages/student_home_page.dart';
 import '../../../home/presentation/pages/teacher_home_page.dart';
+import '../../../profile/presentation/pages/user_detail_page.dart';
 
 class RoleLandingPage extends StatelessWidget {
   const RoleLandingPage({
     required this.activeRole,
+    required this.account,
+    required this.onLogout,
+    required this.loginPageBuilder,
     super.key,
   });
 
   final String activeRole;
+  final Account account;
+  final Future<void> Function() onLogout;
+  final Widget Function() loginPageBuilder;
 
   static const _roleLabels = <String, String>{
     'PARENT': 'Phụ huynh',
@@ -22,14 +30,41 @@ class RoleLandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> logoutAndReturnToLogin() async {
+      try {
+        await onLogout();
+      } catch (_) {
+        // Logout on the server is best-effort. Local tokens and session have
+        // already been cleared by the repository and controller.
+      } finally {
+        if (context.mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute<void>(builder: (_) => loginPageBuilder()),
+            (_) => false,
+          );
+        }
+      }
+    }
+
+    void openProfile() {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => UserDetailPage(
+            account: account,
+            onLogout: logoutAndReturnToLogin,
+          ),
+        ),
+      );
+    }
+
     if (activeRole == 'PARENT') {
-      return const ParentHomePage();
+      return ParentHomePage(onProfileTap: openProfile);
     }
     if (activeRole == 'TEACHER') {
-      return const TeacherHomePage();
+      return TeacherHomePage(onProfileTap: openProfile);
     }
     if (activeRole == 'STUDENT') {
-      return const StudentHomePage();
+      return StudentHomePage(onProfileTap: openProfile);
     }
 
     final roleLabel = _roleLabels[activeRole] ?? activeRole;

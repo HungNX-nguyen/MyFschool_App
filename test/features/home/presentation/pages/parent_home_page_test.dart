@@ -12,7 +12,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      const MaterialApp(home: ParentHomePage()),
+      MaterialApp(home: ParentHomePage(onProfileTap: () {})),
     );
     await tester.pumpAndSettle();
 

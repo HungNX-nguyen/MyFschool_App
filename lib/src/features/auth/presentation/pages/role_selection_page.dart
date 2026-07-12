@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../shared/theme/app_theme.dart';
 import '../controllers/login_controller.dart';
+import 'login_page.dart';
 import 'role_landing_page.dart';
 
 class RoleSelectionPage extends StatefulWidget {
@@ -52,6 +53,11 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
         MaterialPageRoute<void>(
           builder: (_) => RoleLandingPage(
             activeRole: session!.account.activeRole!,
+            account: session.account,
+            onLogout: widget.controller.logout,
+            loginPageBuilder: () => LoginPage(
+              controller: widget.controller,
+            ),
           ),
         ),
       );

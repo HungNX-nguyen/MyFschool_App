@@ -98,6 +98,28 @@ class LoginController extends ChangeNotifier {
     }
   }
 
+  Future<void> logout() async {
+    if (isLoading) {
+      return;
+    }
+
+    _setState(
+      status: LoginStatus.loading,
+      session: _session,
+      errorMessage: null,
+    );
+
+    try {
+      await _authRepository.logout();
+    } finally {
+      _setState(
+        status: LoginStatus.idle,
+        session: null,
+        errorMessage: null,
+      );
+    }
+  }
+
   void clearError() {
     if (_status != LoginStatus.error) {
       return;
