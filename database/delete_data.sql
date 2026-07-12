@@ -1,0 +1,44 @@
+USE myfschool;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+TRUNCATE TABLE account;
+TRUNCATE TABLE account_role;
+TRUNCATE TABLE residential_area;
+TRUNCATE TABLE parent;
+TRUNCATE TABLE teacher;
+TRUNCATE TABLE academic_year;
+TRUNCATE TABLE semester;
+TRUNCATE TABLE grade_level;
+TRUNCATE TABLE subject;
+TRUNCATE TABLE lesson_slot;
+TRUNCATE TABLE class;
+TRUNCATE TABLE student;
+TRUNCATE TABLE parent_student;
+TRUNCATE TABLE student_class_history;
+TRUNCATE TABLE teaching_assignment;
+TRUNCATE TABLE subject_period_requirement;
+TRUNCATE TABLE teacher_unavailability;
+TRUNCATE TABLE timetable;
+TRUNCATE TABLE grade_component;
+TRUNCATE TABLE grade;
+TRUNCATE TABLE learning_result;
+TRUNCATE TABLE exam_schedule;
+TRUNCATE TABLE assignment;
+TRUNCATE TABLE assignment_submission;
+TRUNCATE TABLE leave_request;
+TRUNCATE TABLE absence_record;
+TRUNCATE TABLE tuition_period;
+TRUNCATE TABLE invoice;
+TRUNCATE TABLE invoice_item;
+TRUNCATE TABLE payment_transaction;
+TRUNCATE TABLE club;
+TRUNCATE TABLE club_member;
+TRUNCATE TABLE club_activity;
+TRUNCATE TABLE club_attendance;
+TRUNCATE TABLE school_event;
+TRUNCATE TABLE notification;
+TRUNCATE TABLE notification_recipient;
+TRUNCATE TABLE audit_log;
+
+SET FOREIGN_KEY_CHECKS = 1;

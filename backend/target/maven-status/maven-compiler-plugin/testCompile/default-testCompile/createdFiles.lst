@@ -1,0 +1,5 @@
+com\myfschool\security\JwtServiceTests.class
+com\myfschool\common\exception\GlobalExceptionHandlerTests.class
+com\myfschool\auth\AuthServiceTests.class
+com\myfschool\MyFschoolApplicationTests.class
+com\myfschool\account\AccountRepositoryTests.class
