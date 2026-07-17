@@ -10,26 +10,90 @@ class ApiClient {
   ApiClient({
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 15),
+    this.onRefreshAccessToken,
+    this.onUnauthorized,
   }) : _httpClient = httpClient ?? http.Client();
 
   final http.Client _httpClient;
   final Duration timeout;
+  Future<String?> Function()? onRefreshAccessToken;
+  Future<void> Function()? onUnauthorized;
+
+  Future<String?>? _refreshAccessTokenFuture;
+  bool _isHandlingUnauthorized = false;
+
+  Future<Object?> get(String path, {String? accessToken}) {
+    return _send(
+      (requestAccessToken) => _httpClient.get(
+        AppConfig.apiUri(path),
+        headers: _headers(requestAccessToken),
+      ),
+      accessToken: accessToken,
+    );
+  }
 
   Future<Object?> post(
     String path, {
     Map<String, Object?>? body,
     String? accessToken,
+  }) {
+    return _send(
+      (requestAccessToken) => _httpClient.post(
+        AppConfig.apiUri(path),
+        headers: _headers(requestAccessToken),
+        body: jsonEncode(body ?? const <String, Object?>{}),
+      ),
+      accessToken: accessToken,
+    );
+  }
+
+  Future<Object?> patch(
+    String path, {
+    Map<String, Object?>? body,
+    String? accessToken,
+  }) {
+    return _send(
+      (requestAccessToken) => _httpClient.patch(
+        AppConfig.apiUri(path),
+        headers: _headers(requestAccessToken),
+        body: jsonEncode(body ?? const <String, Object?>{}),
+      ),
+      accessToken: accessToken,
+    );
+  }
+
+  Future<Object?> _send(
+    Future<http.Response> Function(String? accessToken) request, {
+    required String? accessToken,
   }) async {
     try {
-      final response = await _httpClient
-          .post(
-            AppConfig.apiUri(path),
-            headers: _headers(accessToken),
-            body: jsonEncode(body ?? const <String, Object?>{}),
-          )
-          .timeout(timeout);
+      final response = await request(accessToken).timeout(timeout);
 
-      return _parseResponse(response);
+      try {
+        return _parseResponse(response);
+      } on ApiException catch (error) {
+        if (accessToken == null || error.statusCode != 401) {
+          rethrow;
+        }
+
+        final refreshedAccessToken = await _refreshAccessToken();
+        if (refreshedAccessToken == null) {
+          await _handleUnauthorized();
+          rethrow;
+        }
+
+        final retryResponse = await request(
+          refreshedAccessToken,
+        ).timeout(timeout);
+        try {
+          return _parseResponse(retryResponse);
+        } on ApiException catch (retryError) {
+          if (retryError.statusCode == 401) {
+            await _handleUnauthorized();
+          }
+          rethrow;
+        }
+      }
     } on TimeoutException {
       throw const ApiException(
         code: 'NETWORK_TIMEOUT',
@@ -41,6 +105,46 @@ class ApiClient {
         message: 'Không thể kết nối đến máy chủ',
         details: error.message,
       );
+    }
+  }
+
+  Future<String?> _refreshAccessToken() async {
+    final activeRefresh = _refreshAccessTokenFuture;
+    if (activeRefresh != null) {
+      return activeRefresh;
+    }
+
+    final callback = onRefreshAccessToken;
+    if (callback == null) {
+      return null;
+    }
+
+    final refreshFuture = Future<String?>.sync(callback);
+    _refreshAccessTokenFuture = refreshFuture;
+    try {
+      return await refreshFuture;
+    } catch (_) {
+      return null;
+    } finally {
+      if (identical(_refreshAccessTokenFuture, refreshFuture)) {
+        _refreshAccessTokenFuture = null;
+      }
+    }
+  }
+
+  Future<void> _handleUnauthorized() async {
+    final callback = onUnauthorized;
+    if (callback == null || _isHandlingUnauthorized) {
+      return;
+    }
+
+    _isHandlingUnauthorized = true;
+    try {
+      await callback();
+    } catch (_) {
+      // Preserve the original API error even if local session cleanup fails.
+    } finally {
+      _isHandlingUnauthorized = false;
     }
   }
 
@@ -70,7 +174,8 @@ class ApiClient {
       );
     }
 
-    final isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    final isHttpSuccess =
+        response.statusCode >= 200 && response.statusCode < 300;
     if (isHttpSuccess && payload['success'] == true) {
       return payload['data'];
     }

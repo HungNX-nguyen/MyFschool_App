@@ -27,10 +27,7 @@ void main() {
     final repository = _FakeAuthRepository(result: session);
     final controller = LoginController(repository);
 
-    await controller.login(
-      identifier: ' parent01 ',
-      password: 'password123',
-    );
+    await controller.login(identifier: ' parent01 ', password: 'password123');
 
     expect(controller.status, LoginStatus.success);
     expect(controller.session, same(session));
@@ -48,10 +45,7 @@ void main() {
     );
     final controller = LoginController(repository);
 
-    await controller.login(
-      identifier: 'parent01',
-      password: 'wrong-password',
-    );
+    await controller.login(identifier: 'parent01', password: 'wrong-password');
 
     expect(controller.status, LoginStatus.error);
     expect(controller.session, isNull);
@@ -67,10 +61,7 @@ void main() {
       identifier: 'parent01',
       password: 'password123',
     );
-    await controller.login(
-      identifier: 'parent01',
-      password: 'password123',
-    );
+    await controller.login(identifier: 'parent01', password: 'password123');
 
     expect(repository.callCount, 1);
     expect(controller.status, LoginStatus.loading);
@@ -109,15 +100,56 @@ void main() {
     final repository = _FakeAuthRepository(result: session);
     final controller = LoginController(repository);
 
-    await controller.login(
-      identifier: 'parent01',
-      password: 'password123',
-    );
+    await controller.login(identifier: 'parent01', password: 'password123');
     await controller.logout();
 
     expect(repository.logoutCalled, isTrue);
     expect(controller.status, LoginStatus.idle);
     expect(controller.session, isNull);
+  });
+
+  test('clears local session and marks an expired session', () async {
+    final repository = _FakeAuthRepository(result: session);
+    final controller = LoginController(repository);
+
+    await controller.login(identifier: 'parent01', password: 'password123');
+    await controller.expireSession();
+
+    expect(repository.clearLocalSessionCalled, isTrue);
+    expect(repository.logoutCalled, isFalse);
+    expect(controller.status, LoginStatus.sessionExpired);
+    expect(controller.session, isNull);
+    expect(controller.errorMessage, contains('hết hạn'));
+  });
+
+  test('silently refreshes and stores the latest session in memory', () async {
+    const refreshedSession = AuthSession(
+      accessToken: 'refreshed-access-token',
+      refreshToken: 'refreshed-refresh-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      account: Account(
+        id: 1,
+        username: 'parent01',
+        roles: <String>['PARENT'],
+        activeRole: 'PARENT',
+        status: 'ACTIVE',
+      ),
+    );
+    final repository = _FakeAuthRepository(
+      result: session,
+      refreshResult: refreshedSession,
+    );
+    final controller = LoginController(repository);
+
+    await controller.login(identifier: 'parent01', password: 'password123');
+    final accessToken = await controller.refreshAccessToken();
+
+    expect(repository.refreshCallCount, 1);
+    expect(accessToken, 'refreshed-access-token');
+    expect(controller.status, LoginStatus.success);
+    expect(controller.session, same(refreshedSession));
+    expect(controller.errorMessage, isNull);
   });
 }
 
@@ -127,17 +159,26 @@ class _FakeAuthRepository implements AuthRepository {
     this.error,
     this.completer,
     this.roleResult,
+    this.refreshResult,
   });
 
   final AuthSession? result;
   final Object? error;
   final Completer<AuthSession>? completer;
   final AuthSession? roleResult;
+  final AuthSession? refreshResult;
 
   int callCount = 0;
   String? lastIdentifier;
   String? lastSelectedRole;
   bool logoutCalled = false;
+  bool clearLocalSessionCalled = false;
+  int refreshCallCount = 0;
+
+  @override
+  Future<void> clearLocalSession() async {
+    clearLocalSessionCalled = true;
+  }
 
   @override
   Future<void> logout() async {
@@ -146,7 +187,8 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession> refreshSession() {
-    throw UnimplementedError();
+    refreshCallCount++;
+    return Future<AuthSession>.value(refreshResult!);
   }
 
   @override

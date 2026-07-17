@@ -20,10 +20,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     final response = await _remoteDatasource.login(
-      LoginRequest(
-        identifier: identifier,
-        password: password,
-      ),
+      LoginRequest(identifier: identifier, password: password),
     );
 
     return _persist(response);
@@ -63,6 +60,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> clearLocalSession() {
+    return _sessionStorage.clear();
+  }
+
+  @override
   Future<void> logout() async {
     final accessToken = await _sessionStorage.readAccessToken();
     try {
@@ -70,7 +72,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _remoteDatasource.logout(accessToken);
       }
     } finally {
-      await _sessionStorage.clear();
+      await clearLocalSession();
     }
   }
 

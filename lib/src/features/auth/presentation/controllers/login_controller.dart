@@ -4,12 +4,7 @@ import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/repositories/auth_repository.dart';
 
-enum LoginStatus {
-  idle,
-  loading,
-  success,
-  error,
-}
+enum LoginStatus { idle, loading, success, error, sessionExpired }
 
 class LoginController extends ChangeNotifier {
   LoginController(this._authRepository);
@@ -19,6 +14,7 @@ class LoginController extends ChangeNotifier {
   LoginStatus _status = LoginStatus.idle;
   AuthSession? _session;
   String? _errorMessage;
+  int _sessionVersion = 0;
 
   LoginStatus get status => _status;
   AuthSession? get session => _session;
@@ -33,11 +29,10 @@ class LoginController extends ChangeNotifier {
       return;
     }
 
-    _setState(
-      status: LoginStatus.loading,
-      session: null,
-      errorMessage: null,
-    );
+    _sessionVersion++;
+    final operationVersion = _sessionVersion;
+
+    _setState(status: LoginStatus.loading, session: null, errorMessage: null);
 
     try {
       final session = await _authRepository.login(
@@ -45,18 +40,29 @@ class LoginController extends ChangeNotifier {
         password: password,
       );
 
+      if (operationVersion != _sessionVersion) {
+        await _authRepository.clearLocalSession();
+        return;
+      }
+
       _setState(
         status: LoginStatus.success,
         session: session,
         errorMessage: null,
       );
     } on ApiException catch (error) {
+      if (operationVersion != _sessionVersion) {
+        return;
+      }
       _setState(
         status: LoginStatus.error,
         session: null,
         errorMessage: _mapApiError(error),
       );
     } catch (_) {
+      if (operationVersion != _sessionVersion) {
+        return;
+      }
       _setState(
         status: LoginStatus.error,
         session: null,
@@ -70,6 +76,8 @@ class LoginController extends ChangeNotifier {
       return;
     }
 
+    final operationVersion = _sessionVersion;
+
     _setState(
       status: LoginStatus.loading,
       session: _session,
@@ -78,18 +86,28 @@ class LoginController extends ChangeNotifier {
 
     try {
       final session = await _authRepository.selectActiveRole(activeRole);
+      if (operationVersion != _sessionVersion) {
+        await _authRepository.clearLocalSession();
+        return;
+      }
       _setState(
         status: LoginStatus.success,
         session: session,
         errorMessage: null,
       );
     } on ApiException catch (error) {
+      if (operationVersion != _sessionVersion) {
+        return;
+      }
       _setState(
         status: LoginStatus.error,
         session: _session,
         errorMessage: _mapApiError(error),
       );
     } catch (_) {
+      if (operationVersion != _sessionVersion) {
+        return;
+      }
       _setState(
         status: LoginStatus.error,
         session: _session,
@@ -103,6 +121,8 @@ class LoginController extends ChangeNotifier {
       return;
     }
 
+    _sessionVersion++;
+
     _setState(
       status: LoginStatus.loading,
       session: _session,
@@ -112,11 +132,56 @@ class LoginController extends ChangeNotifier {
     try {
       await _authRepository.logout();
     } finally {
+      _setState(status: LoginStatus.idle, session: null, errorMessage: null);
+    }
+  }
+
+  Future<void> expireSession() {
+    return _expireSession(
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    );
+  }
+
+  Future<void> expireInactiveSession() {
+    return _expireSession(
+      'Phiên đăng nhập đã kết thúc do không hoạt động trong 30 phút.',
+    );
+  }
+
+  Future<void> _expireSession(String message) async {
+    if (_status == LoginStatus.sessionExpired) {
+      return;
+    }
+
+    _sessionVersion++;
+    try {
+      await _authRepository.clearLocalSession();
+    } finally {
       _setState(
-        status: LoginStatus.idle,
+        status: LoginStatus.sessionExpired,
         session: null,
+        errorMessage: message,
+      );
+    }
+  }
+
+  Future<String?> refreshAccessToken() async {
+    final operationVersion = _sessionVersion;
+    try {
+      final refreshedSession = await _authRepository.refreshSession();
+      if (operationVersion != _sessionVersion ||
+          _status == LoginStatus.sessionExpired) {
+        await _authRepository.clearLocalSession();
+        return null;
+      }
+      _setState(
+        status: LoginStatus.success,
+        session: refreshedSession,
         errorMessage: null,
       );
+      return refreshedSession.accessToken;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -125,11 +190,7 @@ class LoginController extends ChangeNotifier {
       return;
     }
 
-    _setState(
-      status: LoginStatus.idle,
-      session: null,
-      errorMessage: null,
-    );
+    _setState(status: LoginStatus.idle, session: null, errorMessage: null);
   }
 
   String _mapApiError(ApiException error) {

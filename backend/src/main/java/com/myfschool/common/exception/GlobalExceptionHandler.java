@@ -12,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -55,6 +56,21 @@ public class GlobalExceptionHandler {
                 ErrorCode.INVALID_REQUEST,
                 "Nội dung yêu cầu không hợp lệ",
                 List.of()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_REQUEST,
+                "Tham số truy vấn không hợp lệ",
+                List.of(new ApiErrorDetail(
+                        exception.getName(),
+                        "Giá trị không đúng định dạng yêu cầu"
+                ))
         );
     }
 

@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../../../notification/presentation/controllers/app_notification_controller.dart';
 import '../widgets/home_shared_widgets.dart';
 
 class StudentHomePage extends StatelessWidget {
   const StudentHomePage({
+    this.notificationController,
     required this.onProfileTap,
+    required this.onTimetableTap,
+    required this.onLearningResultTap,
+    required this.onSchoolEventTap,
+    this.onNotificationTap,
     super.key,
   });
 
+  final AppNotificationController? notificationController;
   final VoidCallback onProfileTap;
+  final VoidCallback onTimetableTap;
+  final VoidCallback onLearningResultTap;
+  final VoidCallback onSchoolEventTap;
+  final VoidCallback? onNotificationTap;
 
   static const _features = <HomeFeatureItem>[
     HomeFeatureItem(
@@ -54,7 +65,18 @@ class StudentHomePage extends StatelessWidget {
                   const SizedBox(height: 32),
                   const HomeSectionHeader(title: 'Các chức năng'),
                   const SizedBox(height: 14),
-                  const HomeFeatureGrid(features: _features),
+                  HomeFeatureGrid(
+                    features: _features,
+                    onFeatureTap: (index) {
+                      if (index == 0) {
+                        onTimetableTap();
+                      } else if (index == 1) {
+                        onLearningResultTap();
+                      } else if (index == 4) {
+                        onSchoolEventTap();
+                      }
+                    },
+                  ),
                   const SizedBox(height: 28),
                   const HomeSectionHeader(title: 'Tin tức nhà trường'),
                   const SizedBox(height: 14),
@@ -66,6 +88,8 @@ class StudentHomePage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: HomeBottomNavigation(
+        notificationController: notificationController,
+        onNotificationTap: onNotificationTap,
         onAccountTap: onProfileTap,
       ),
     );

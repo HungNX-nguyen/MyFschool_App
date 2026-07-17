@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../../shared/theme/app_theme.dart';
+import '../../../homeroom/presentation/controllers/homeroom_controller.dart';
+import '../../../learning_result/presentation/controllers/learning_result_controller.dart';
+import '../../../leave_absence/presentation/controllers/parent_leave_request_controller.dart';
+import '../../../leave_absence/presentation/controllers/teacher_leave_request_controller.dart';
+import '../../../notification/presentation/controllers/app_notification_controller.dart';
+import '../../../parent/presentation/controllers/parent_home_controller.dart';
+import '../../../school_event/presentation/controllers/school_event_controller.dart';
+import '../../../timetable/presentation/controllers/timetable_controller.dart';
+import '../../../teacher/presentation/controllers/teacher_home_controller.dart';
+import '../../../teacher_communication/presentation/controllers/teacher_communication_controller.dart';
 import '../controllers/login_controller.dart';
 import 'login_page.dart';
 import 'role_landing_page.dart';
@@ -8,11 +18,46 @@ import 'role_landing_page.dart';
 class RoleSelectionPage extends StatefulWidget {
   const RoleSelectionPage({
     required this.controller,
+    required this.notificationController,
+    required this.parentHomeController,
+    required this.teacherHomeController,
+    required this.createHomeroomController,
+    required this.createParentTimetableController,
+    required this.createStudentTimetableController,
+    required this.createTeacherTimetableController,
+    required this.createParentLearningResultController,
+    required this.createStudentLearningResultController,
+    required this.createParentLeaveRequestController,
+    required this.createTeacherLeaveRequestController,
+    required this.createParentSchoolEventController,
+    required this.createStudentSchoolEventController,
+    required this.createTeacherCommunicationController,
     required this.roles,
     super.key,
   });
 
   final LoginController controller;
+  final AppNotificationController notificationController;
+  final ParentHomeController parentHomeController;
+  final TeacherHomeController teacherHomeController;
+  final HomeroomController Function() createHomeroomController;
+  final TimetableController Function(int studentId)
+  createParentTimetableController;
+  final TimetableController Function() createStudentTimetableController;
+  final TimetableController Function() createTeacherTimetableController;
+  final LearningResultController Function(int studentId)
+  createParentLearningResultController;
+  final LearningResultController Function()
+  createStudentLearningResultController;
+  final ParentLeaveRequestController Function(int studentId)
+  createParentLeaveRequestController;
+  final TeacherLeaveRequestController Function()
+  createTeacherLeaveRequestController;
+  final SchoolEventController Function(int studentId)
+  createParentSchoolEventController;
+  final SchoolEventController Function() createStudentSchoolEventController;
+  final TeacherCommunicationController Function()
+  createTeacherCommunicationController;
   final List<String> roles;
 
   @override
@@ -54,9 +99,57 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
           builder: (_) => RoleLandingPage(
             activeRole: session!.account.activeRole!,
             account: session.account,
+            notificationController: widget.notificationController,
+            parentHomeController: widget.parentHomeController,
+            teacherHomeController: widget.teacherHomeController,
+            createHomeroomController: widget.createHomeroomController,
+            createParentTimetableController:
+                widget.createParentTimetableController,
+            createStudentTimetableController:
+                widget.createStudentTimetableController,
+            createTeacherTimetableController:
+                widget.createTeacherTimetableController,
+            createParentLearningResultController:
+                widget.createParentLearningResultController,
+            createStudentLearningResultController:
+                widget.createStudentLearningResultController,
+            createParentLeaveRequestController:
+                widget.createParentLeaveRequestController,
+            createTeacherLeaveRequestController:
+                widget.createTeacherLeaveRequestController,
+            createParentSchoolEventController:
+                widget.createParentSchoolEventController,
+            createStudentSchoolEventController:
+                widget.createStudentSchoolEventController,
+            createTeacherCommunicationController:
+                widget.createTeacherCommunicationController,
             onLogout: widget.controller.logout,
             loginPageBuilder: () => LoginPage(
               controller: widget.controller,
+              notificationController: widget.notificationController,
+              parentHomeController: widget.parentHomeController,
+              teacherHomeController: widget.teacherHomeController,
+              createHomeroomController: widget.createHomeroomController,
+              createParentTimetableController:
+                  widget.createParentTimetableController,
+              createStudentTimetableController:
+                  widget.createStudentTimetableController,
+              createTeacherTimetableController:
+                  widget.createTeacherTimetableController,
+              createParentLearningResultController:
+                  widget.createParentLearningResultController,
+              createStudentLearningResultController:
+                  widget.createStudentLearningResultController,
+              createParentLeaveRequestController:
+                  widget.createParentLeaveRequestController,
+              createTeacherLeaveRequestController:
+                  widget.createTeacherLeaveRequestController,
+              createParentSchoolEventController:
+                  widget.createParentSchoolEventController,
+              createStudentSchoolEventController:
+                  widget.createStudentSchoolEventController,
+              createTeacherCommunicationController:
+                  widget.createTeacherCommunicationController,
             ),
           ),
         ),
@@ -100,16 +193,22 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
                           ),
                         ),
                         const SizedBox(height: 48),
-                        for (var index = 0; index < widget.roles.length; index++)
+                        for (
+                          var index = 0;
+                          index < widget.roles.length;
+                          index++
+                        )
                           Padding(
                             padding: EdgeInsets.only(
                               bottom: index == widget.roles.length - 1 ? 0 : 24,
                             ),
                             child: _RoleButton(
-                              label: _roleLabels[widget.roles[index]] ??
+                              label:
+                                  _roleLabels[widget.roles[index]] ??
                                   widget.roles[index],
                               isPrimary: index == 0,
-                              isLoading: widget.controller.isLoading &&
+                              isLoading:
+                                  widget.controller.isLoading &&
                                   _selectedRole == widget.roles[index],
                               isDisabled: widget.controller.isLoading,
                               onPressed: () => _selectRole(widget.roles[index]),

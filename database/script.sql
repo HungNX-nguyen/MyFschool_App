@@ -52,6 +52,10 @@ DROP TABLE IF EXISTS timetable;
 DROP TABLE IF EXISTS teacher_unavailability;
 DROP TABLE IF EXISTS subject_period_requirement;
 DROP TABLE IF EXISTS teaching_assignment;
+DROP TABLE IF EXISTS student_study_group;
+DROP TABLE IF EXISTS study_group;
+DROP TABLE IF EXISTS subject_cluster_subject;
+DROP TABLE IF EXISTS subject_cluster;
 DROP TABLE IF EXISTS student_class_history;
 DROP TABLE IF EXISTS student;
 DROP TABLE IF EXISTS class;
@@ -236,6 +240,65 @@ CREATE TABLE subject (
 
 CREATE INDEX idx_subject_status ON subject (status);
 
+CREATE TABLE subject_cluster (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  academic_year_id BIGINT NOT NULL,
+  semester_id BIGINT NOT NULL,
+  grade_level_id BIGINT NOT NULL,
+  cluster_code VARCHAR(50) NOT NULL,
+  cluster_name VARCHAR(100) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT uq_subject_cluster_scope_code UNIQUE (
+    academic_year_id,
+    semester_id,
+    grade_level_id,
+    cluster_code
+  ),
+  CONSTRAINT chk_subject_cluster_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  CONSTRAINT fk_subject_cluster_academic_year FOREIGN KEY (academic_year_id) REFERENCES academic_year (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_subject_cluster_semester FOREIGN KEY (semester_id) REFERENCES semester (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_subject_cluster_grade_level FOREIGN KEY (grade_level_id) REFERENCES grade_level (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_subject_cluster_lookup ON subject_cluster (
+  academic_year_id,
+  semester_id,
+  grade_level_id,
+  status
+);
+
+CREATE TABLE subject_cluster_subject (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  subject_cluster_id BIGINT NOT NULL,
+  subject_id BIGINT NOT NULL,
+  periods_per_week INT NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT uq_subject_cluster_subject UNIQUE (subject_cluster_id, subject_id),
+  CONSTRAINT chk_subject_cluster_subject_periods CHECK (periods_per_week > 0),
+  CONSTRAINT chk_subject_cluster_subject_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  CONSTRAINT fk_subject_cluster_subject_cluster FOREIGN KEY (subject_cluster_id) REFERENCES subject_cluster (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_subject_cluster_subject_subject FOREIGN KEY (subject_id) REFERENCES subject (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_subject_cluster_subject_subject_id ON subject_cluster_subject (subject_id);
+CREATE INDEX idx_subject_cluster_subject_status ON subject_cluster_subject (status);
+
 /* lesson_slot được database_design.md nhắc trong ERD, index và FK nhưng thiếu bảng mô tả cột chi tiết.
    Các cột dưới đây chỉ dùng đúng thông tin đã xuất hiện trong tài liệu: academic_year_id, shift, slot_index, start_time, end_time. */
 CREATE TABLE lesson_slot (
@@ -289,6 +352,30 @@ CREATE INDEX idx_class_academic_year_id ON class (academic_year_id);
 CREATE INDEX idx_class_grade_level_id ON class (grade_level_id);
 CREATE INDEX idx_class_homeroom_teacher_id ON class (homeroom_teacher_id);
 CREATE INDEX idx_class_status ON class (status);
+
+CREATE TABLE study_group (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  class_id BIGINT NOT NULL,
+  subject_cluster_id BIGINT NOT NULL,
+  group_code VARCHAR(50) NOT NULL,
+  group_name VARCHAR(100) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT uq_study_group_class_code UNIQUE (class_id, group_code),
+  CONSTRAINT chk_study_group_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  CONSTRAINT fk_study_group_class FOREIGN KEY (class_id) REFERENCES class (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_study_group_subject_cluster FOREIGN KEY (subject_cluster_id) REFERENCES subject_cluster (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_study_group_class_id ON study_group (class_id);
+CREATE INDEX idx_study_group_subject_cluster_id ON study_group (subject_cluster_id);
+CREATE INDEX idx_study_group_status ON study_group (status);
 
 /* =========================================================
    3. Student và quan hệ phụ thuộc class
@@ -352,6 +439,45 @@ CREATE TABLE parent_student (
 CREATE INDEX idx_parent_student_parent_id ON parent_student (parent_id);
 CREATE INDEX idx_parent_student_student_id ON parent_student (student_id);
 CREATE INDEX idx_parent_student_status ON parent_student (status);
+
+CREATE TABLE student_study_group (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  student_id BIGINT NOT NULL,
+  study_group_id BIGINT NOT NULL,
+  academic_year_id BIGINT NOT NULL,
+  semester_id BIGINT NOT NULL,
+  effective_from DATE NOT NULL,
+  effective_to DATE NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT uq_student_study_group_semester UNIQUE (student_id, semester_id),
+  CONSTRAINT chk_student_study_group_date CHECK (
+    effective_to IS NULL OR effective_from <= effective_to
+  ),
+  CONSTRAINT chk_student_study_group_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  CONSTRAINT fk_student_study_group_student FOREIGN KEY (student_id) REFERENCES student (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_student_study_group_group FOREIGN KEY (study_group_id) REFERENCES study_group (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_student_study_group_academic_year FOREIGN KEY (academic_year_id) REFERENCES academic_year (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_student_study_group_semester FOREIGN KEY (semester_id) REFERENCES semester (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_student_study_group_lookup ON student_study_group (
+  student_id,
+  academic_year_id,
+  semester_id,
+  status
+);
+CREATE INDEX idx_student_study_group_group_id ON student_study_group (study_group_id);
 
 CREATE TABLE student_class_history (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -487,6 +613,7 @@ CREATE TABLE timetable (
   academic_year_id BIGINT NOT NULL,
   semester_id BIGINT NOT NULL,
   class_id BIGINT NOT NULL,
+  study_group_id BIGINT NULL,
   subject_id BIGINT NOT NULL,
   teacher_id BIGINT NOT NULL,
   lesson_slot_id BIGINT NULL,
@@ -513,6 +640,9 @@ CREATE TABLE timetable (
   CONSTRAINT fk_timetable_class FOREIGN KEY (class_id) REFERENCES class (id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
+  CONSTRAINT fk_timetable_study_group FOREIGN KEY (study_group_id) REFERENCES study_group (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
   CONSTRAINT fk_timetable_subject FOREIGN KEY (subject_id) REFERENCES subject (id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
@@ -525,12 +655,14 @@ CREATE TABLE timetable (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_timetable_class_id ON timetable (class_id);
+CREATE INDEX idx_timetable_study_group_id ON timetable (study_group_id);
 CREATE INDEX idx_timetable_teacher_id ON timetable (teacher_id);
 CREATE INDEX idx_timetable_lesson_slot_id ON timetable (lesson_slot_id);
 CREATE INDEX idx_timetable_semester_id ON timetable (semester_id);
 CREATE INDEX idx_timetable_status ON timetable (status);
 CREATE INDEX idx_timetable_day_slot ON timetable (day_of_week, slot_index);
 CREATE INDEX idx_timetable_class_time ON timetable (class_id, day_of_week, slot_index, effective_from, effective_to);
+CREATE INDEX idx_timetable_group_time ON timetable (study_group_id, day_of_week, slot_index, effective_from, effective_to);
 CREATE INDEX idx_timetable_teacher_time ON timetable (teacher_id, day_of_week, slot_index, effective_from, effective_to);
 CREATE INDEX idx_timetable_room_time ON timetable (room, day_of_week, slot_index, effective_from, effective_to);
 
@@ -612,16 +744,26 @@ CREATE TABLE learning_result (
   academic_year_id BIGINT NOT NULL,
   semester_id BIGINT NULL,
   subject_id BIGINT NULL,
+  result_type VARCHAR(30) NOT NULL,
   average_score DECIMAL(4,2) NULL,
   rank_label VARCHAR(50) NULL,
+  conduct_label VARCHAR(50) NULL,
   promotion_status VARCHAR(50) NULL,
   is_finalized TINYINT(1) NOT NULL DEFAULT 0,
   finalized_by_account_id BIGINT NULL,
   finalized_at DATETIME NULL,
+  description TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   CONSTRAINT chk_learning_result_average CHECK (average_score IS NULL OR (average_score >= 0 AND average_score <= 10)),
+  CONSTRAINT chk_learning_result_type CHECK (result_type IN ('SUBJECT_SEMESTER', 'SEMESTER_SUMMARY', 'SUBJECT_ANNUAL', 'ANNUAL_SUMMARY')),
+  CONSTRAINT chk_learning_result_scope CHECK (
+    (result_type = 'SUBJECT_SEMESTER' AND semester_id IS NOT NULL AND subject_id IS NOT NULL AND conduct_label IS NULL)
+    OR (result_type = 'SEMESTER_SUMMARY' AND semester_id IS NOT NULL AND subject_id IS NULL)
+    OR (result_type = 'SUBJECT_ANNUAL' AND semester_id IS NULL AND subject_id IS NOT NULL AND conduct_label IS NULL)
+    OR (result_type = 'ANNUAL_SUMMARY' AND semester_id IS NULL AND subject_id IS NULL)
+  ),
   CONSTRAINT chk_learning_result_promotion CHECK (promotion_status IS NULL OR promotion_status IN ('PROMOTED', 'RETAINED', 'REEXAM_REQUIRED', 'PENDING_REVIEW', 'GRADUATED')),
   CONSTRAINT chk_learning_result_finalized CHECK (is_finalized IN (0, 1)),
   CONSTRAINT fk_learning_result_student FOREIGN KEY (student_id) REFERENCES student (id)
@@ -634,10 +776,10 @@ CREATE TABLE learning_result (
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
   CONSTRAINT fk_learning_result_semester FOREIGN KEY (semester_id) REFERENCES semester (id)
-    ON UPDATE CASCADE
+    ON UPDATE RESTRICT
     ON DELETE RESTRICT,
   CONSTRAINT fk_learning_result_subject FOREIGN KEY (subject_id) REFERENCES subject (id)
-    ON UPDATE CASCADE
+    ON UPDATE RESTRICT
     ON DELETE RESTRICT,
   CONSTRAINT fk_learning_result_finalized_by FOREIGN KEY (finalized_by_account_id) REFERENCES account (id)
     ON UPDATE CASCADE
@@ -648,6 +790,14 @@ CREATE INDEX idx_learning_result_student_id ON learning_result (student_id);
 CREATE INDEX idx_learning_result_class_id ON learning_result (class_id);
 CREATE INDEX idx_learning_result_year_semester ON learning_result (academic_year_id, semester_id);
 CREATE INDEX idx_learning_result_subject_id ON learning_result (subject_id);
+CREATE UNIQUE INDEX uq_learning_result_scope ON learning_result (
+  student_id,
+  class_id,
+  academic_year_id,
+  result_type,
+  (COALESCE(semester_id, 0)),
+  (COALESCE(subject_id, 0))
+);
 
 CREATE TABLE exam_schedule (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -1099,7 +1249,7 @@ CREATE TABLE notification (
   created_by_account_id BIGINT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT chk_notification_type CHECK (type IN ('GRADE', 'LEAVE', 'ABSENCE', 'TUITION', 'CLUB', 'EVENT', 'SYSTEM')),
+  CONSTRAINT chk_notification_type CHECK (type IN ('GRADE', 'LEAVE', 'ABSENCE', 'TUITION', 'CLUB', 'ANNOUNCEMENT', 'EVENT', 'SYSTEM')),
   CONSTRAINT fk_notification_related_student FOREIGN KEY (related_student_id) REFERENCES student (id)
     ON UPDATE CASCADE
     ON DELETE SET NULL,
@@ -1170,12 +1320,10 @@ CREATE INDEX idx_audit_log_created_at ON audit_log (created_at);
    =========================================================
    1. database_design.md nhắc class.max_students trong business rule nhưng bảng class không định nghĩa cột max_students,
       nên script không thêm cột này để tránh tự ý mở rộng schema.
-   2. learning_result ghi chú nên có result_type, nhưng bảng mô tả cột không liệt kê result_type,
-      nên script không thêm cột này.
-   3. subject_grade_policy và system_setting nằm trong nhóm cấu hình đề xuất/giai đoạn sau,
+   2. subject_grade_policy và system_setting nằm trong nhóm cấu hình đề xuất/giai đoạn sau,
       không thuộc nhóm bảng chính bắt buộc nên không tạo trong script chính thức này.
-   4. Messaging/Chat là module mở rộng giai đoạn sau, không thuộc phạm vi database lõi ban đầu nên không tạo bảng.
-   5. Các ràng buộc phụ thuộc dữ liệu liên bảng phức tạp cần backend/trigger xử lý:
+   3. Messaging/Chat là module mở rộng giai đoạn sau, không thuộc phạm vi database lõi ban đầu nên không tạo bảng.
+   4. Các ràng buộc phụ thuộc dữ liệu liên bảng phức tạp cần backend/trigger xử lý:
       - role account phải khớp profile parent/student/teacher,
       - semester date nằm trong academic_year,
       - class không vượt sĩ số tối đa nếu sau này có max_students,

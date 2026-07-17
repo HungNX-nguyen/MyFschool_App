@@ -10,5 +10,7 @@ abstract interface class AuthRepository {
 
   Future<AuthSession> selectActiveRole(String activeRole);
 
+  Future<void> clearLocalSession();
+
   Future<void> logout();
 }
